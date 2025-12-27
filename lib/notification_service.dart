@@ -2,59 +2,35 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
-class NotificationService {
-  static final FlutterLocalNotificationsPlugin _notifications =
-      FlutterLocalNotificationsPlugin();
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
-  static Future<void> init() async {
-    tz.initializeTimeZones();
+bool initialized = false;
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+Future<void> initNotifications() async {
+  if (initialized) return;
 
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-    );
+  tz.initializeTimeZones();
 
-    await _notifications.initialize(initSettings);
-  }
+  const AndroidInitializationSettings androidSettings =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings settings =
+      InitializationSettings(android: androidSettings);
 
-  static Future<void> scheduleDailyReminder() async {
-    const androidDetails = AndroidNotificationDetails(
-      'feedback_channel',
-      'LiveLearn Feedback',
-      channelDescription: 'Erinnerung zur Feedbackabgabe',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
+  await flutterLocalNotificationsPlugin.initialize(settings);
 
-    const details = NotificationDetails(android: androidDetails);
+  initialized = true;
+}
 
-    await _notifications.zonedSchedule(
-      0,
-      'LiveLearn Feedback',
-      'Bitte gib dein Feedback zur heutigen LV ab 📚',
-      _nextInstanceOfEvening(),
-      details,
+Future<void> showNotification(String title, String body) async {
+  await initNotifications();
+  const AndroidNotificationDetails androidDetails =
+      AndroidNotificationDetails(
+          'feedback_channel', 'Feedback Notifications',
+          importance: Importance.max, priority: Priority.high);
 
-      // ✅ Pflichtparameter in neuen Versionen
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+  const NotificationDetails platformDetails =
+      NotificationDetails(android: androidDetails);
 
-      // ✅ tägliche Wiederholung zur gleichen Uhrzeit
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
-  }
-
-  static tz.TZDateTime _nextInstanceOfEvening() {
-    final now = tz.TZDateTime.now(tz.local);
-    var scheduled =
-  tz.TZDateTime(tz.local, now.year, now.month, now.day, now.hour, now.minute + 1);
-;
-
-    if (scheduled.isBefore(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
-    }
-
-    return scheduled;
-  }
+  await flutterLocalNotificationsPlugin.show(0, title, body, platformDetails);
 }

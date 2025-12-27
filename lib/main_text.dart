@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'feedback_model.dart';
 import 'api_service.dart';
 import 'trend_chart.dart';
+import 'notification_service.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 class MainText extends StatefulWidget {
   const MainText({super.key});
@@ -23,6 +25,7 @@ class _MainTextState extends State<MainText> {
   @override
   void initState() {
     super.initState();
+    initNotifications();
     loadFeedback();
   }
 
@@ -38,13 +41,11 @@ class _MainTextState extends State<MainText> {
   int durchschnitt(List<FeedbackEntry> list, String feld) {
     if (list.isEmpty) return 0;
     double summe = 0;
-
     for (var e in list) {
       if (feld == "verstehen") summe += e.verstehen;
       if (feld == "tempo") summe += e.tempo;
       if (feld == "engagement") summe += e.engagement;
     }
-
     return (summe / list.length).round();
   }
 
@@ -52,6 +53,33 @@ class _MainTextState extends State<MainText> {
     if (neu > alt) return "↑ verbessert";
     if (neu < alt) return "↓ schlechter";
     return "→ gleich";
+  }
+
+  void showError() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Unvollständige Bewertung"),
+        content: const Text(
+          "Bitte bewerte alle Kriterien, bevor du speicherst.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void showSavedMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("✅ Feedback gespeichert"),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   Widget starRow(String title, int value, Function(int) onChange) {
@@ -75,24 +103,6 @@ class _MainTextState extends State<MainText> {
     );
   }
 
-  void showError() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Unvollständige Bewertung"),
-        content: const Text(
-          "Bitte bewerte alle Kriterien, bevor du speicherst.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     bool extremeReached =
@@ -100,30 +110,29 @@ class _MainTextState extends State<MainText> {
         tempo == 1 || tempo == 5 ||
         engagement == 1 || engagement == 5;
 
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          /// 🔹 DURCHSCHNITT + VERBESSERUNG
-          const Text(
+          /// 🔹 DURCHSCHNITT
+          Text(
             "Durchschnitt",
-            style: TextStyle(color: Colors.white, fontSize: 18),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: screenWidth * 0.05,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-
-          Text(
-            "Verständlichkeit: ${durchschnitt(eintraege, "verstehen")}",
-            style: const TextStyle(color: Colors.white),
-          ),
-          Text(
-            "Tempo: ${durchschnitt(eintraege, "tempo")}",
-            style: const TextStyle(color: Colors.white),
-          ),
-          Text(
-            "Engagement: ${durchschnitt(eintraege, "engagement")}",
-            style: const TextStyle(color: Colors.white),
-          ),
+          Text("Verständlichkeit: ${durchschnitt(eintraege, "verstehen")}",
+              style: const TextStyle(color: Colors.white)),
+          Text("Tempo: ${durchschnitt(eintraege, "tempo")}",
+              style: const TextStyle(color: Colors.white)),
+          Text("Engagement: ${durchschnitt(eintraege, "engagement")}",
+              style: const TextStyle(color: Colors.white)),
 
           if (eintraege.length >= 2) ...[
             const SizedBox(height: 6),
@@ -152,43 +161,50 @@ class _MainTextState extends State<MainText> {
 
           const SizedBox(height: 16),
 
-          /// 🔹 TREND CHART
-          TrendChart(eintraege),
+          /// 🔹 TREND
+          SizedBox(
+            height: screenHeight * 0.3,
+            child: TrendChart(eintraege),
+          ),
 
           const Divider(color: Colors.white),
 
-          /// 🔹 STERNE
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          /// 🔹 BEWERTUNG
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              starRow("Verständlichkeit", verstehen, (v) => verstehen = v),
-              starRow("Tempo", tempo, (v) => tempo = v),
-              starRow("Engagement", engagement, (v) => engagement = v),
+              starRow("Verständlichkeit", verstehen, (v) => setState(() => verstehen = v)),
+              starRow("Tempo", tempo, (v) => setState(() => tempo = v)),
+              starRow("Engagement", engagement, (v) => setState(() => engagement = v)),
             ],
           ),
 
           if (extremeReached)
-            TextField(
-              controller: extremCtrl,
-              decoration: const InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                labelText: "Kommentar (wegen Extremwert)",
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: TextField(
+                controller: extremCtrl,
+                decoration: const InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  labelText: "Kommentar (wegen Extremwert)",
+                ),
               ),
             ),
 
-          const SizedBox(height: 8),
-
-          TextField(
-            controller: freiCtrl,
-            decoration: const InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              labelText: "Freitext (optional)",
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: TextField(
+              controller: freiCtrl,
+              decoration: const InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                labelText: "Freitext (optional)",
+              ),
+              maxLines: null,
             ),
           ),
-
-          const SizedBox(height: 10),
 
           ElevatedButton(
             onPressed: () async {
@@ -216,6 +232,13 @@ class _MainTextState extends State<MainText> {
                 extremCtrl.clear();
                 freiCtrl.clear();
               });
+
+              // SnackBar & Sofort-Notification
+              showSavedMessage();
+              await showNotification(
+                "Feedback gespeichert ✅",
+                "Danke für dein Feedback zur aktuellen LV-Einheit!",
+              );
             },
             child: const Text("Feedback speichern"),
           ),
@@ -223,13 +246,17 @@ class _MainTextState extends State<MainText> {
           const Divider(color: Colors.white),
 
           /// 🔹 VERLAUF
-          const Text(
+          Text(
             "Bewertungsverlauf",
-            style: TextStyle(color: Colors.white, fontSize: 18),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: screenWidth * 0.05,
+              fontWeight: FontWeight.bold,
+            ),
           ),
 
           SizedBox(
-            height: 220,
+            height: screenHeight * 0.3,
             child: ListView(
               children: eintraege.map((e) {
                 return Card(

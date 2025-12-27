@@ -22,34 +22,70 @@ class TrendChart extends StatelessWidget {
       );
     }
 
+    // Dynamische Breite: 60px pro Eintrag oder min. Bildschirmbreite
+    double chartWidth = entries.length * 60.0;
+    double screenWidth = MediaQuery.of(context).size.width;
+    if (chartWidth < screenWidth) chartWidth = screenWidth;
+
     return SizedBox(
       height: 220,
-      child: LineChart(
-        LineChartData(
-          minY: 1,
-          maxY: 5,
-          titlesData: FlTitlesData(show: false),
-          gridData: FlGridData(show: true),
-          lineBarsData: [
-            LineChartBarData(
-              spots: _spots((e) => e.verstehen),
-              isCurved: true,
-              color: Colors.blue,
-              barWidth: 3,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: chartWidth,
+          child: LineChart(
+            LineChartData(
+              minY: 1,
+              maxY: 5,
+              gridData: FlGridData(show: true),
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 30,
+                    getTitlesWidget: (value, meta) {
+                      int index = value.toInt();
+                      if (index < entries.length) {
+                        return Text(
+                          "${index + 1}", // Einheit 1,2,3...
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        );
+                      }
+                      return const Text("");
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: true, interval: 1),
+                ),
+                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              ),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: _spots((e) => e.verstehen),
+                  isCurved: true,
+                  color: Colors.blue,
+                  barWidth: 3,
+                  dotData: FlDotData(show: true),
+                ),
+                LineChartBarData(
+                  spots: _spots((e) => e.tempo),
+                  isCurved: true,
+                  color: Colors.green,
+                  barWidth: 3,
+                  dotData: FlDotData(show: true),
+                ),
+                LineChartBarData(
+                  spots: _spots((e) => e.engagement),
+                  isCurved: true,
+                  color: Colors.orange,
+                  barWidth: 3,
+                  dotData: FlDotData(show: true),
+                ),
+              ],
             ),
-            LineChartBarData(
-              spots: _spots((e) => e.tempo),
-              isCurved: true,
-              color: Colors.green,
-              barWidth: 3,
-            ),
-            LineChartBarData(
-              spots: _spots((e) => e.engagement),
-              isCurved: true,
-              color: Colors.orange,
-              barWidth: 3,
-            ),
-          ],
+          ),
         ),
       ),
     );
