@@ -3,7 +3,6 @@ import 'feedback_model.dart';
 import 'api_service.dart';
 import 'trend_chart.dart';
 import 'notification_service.dart';
-import 'package:timezone/timezone.dart' as tz;
 
 class MainText extends StatefulWidget {
   const MainText({super.key});
@@ -73,15 +72,6 @@ class _MainTextState extends State<MainText> {
     );
   }
 
-  void showSavedMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("✅ Feedback gespeichert"),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
   Widget starRow(String title, int value, Function(int) onChange) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,7 +108,7 @@ class _MainTextState extends State<MainText> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// 🔹 DURCHSCHNITT
+          //DURCHSCHNITT
           Text(
             "Durchschnitt",
             style: TextStyle(
@@ -161,7 +151,7 @@ class _MainTextState extends State<MainText> {
 
           const SizedBox(height: 16),
 
-          /// 🔹 TREND
+          //TREND
           SizedBox(
             height: screenHeight * 0.3,
             child: TrendChart(eintraege),
@@ -169,7 +159,7 @@ class _MainTextState extends State<MainText> {
 
           const Divider(color: Colors.white),
 
-          /// 🔹 BEWERTUNG
+          //BEWERTUNG
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -233,9 +223,8 @@ class _MainTextState extends State<MainText> {
                 freiCtrl.clear();
               });
 
-              // SnackBar & Sofort-Notification
-              showSavedMessage();
-              await showNotification(
+              //Sofort-Notification
+                await showNotification(
                 "Feedback gespeichert ✅",
                 "Danke für dein Feedback zur aktuellen LV-Einheit!",
               );
@@ -245,7 +234,7 @@ class _MainTextState extends State<MainText> {
 
           const Divider(color: Colors.white),
 
-          /// 🔹 VERLAUF
+          //VERLAUF
           Text(
             "Bewertungsverlauf",
             style: TextStyle(
